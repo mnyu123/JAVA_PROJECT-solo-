@@ -54,29 +54,39 @@ public class WordQuiz {
         v.add(new Word("word", "단어"));
         v.add(new Word("bank", "은행"));
 
-        // for (int i = 0; i < v.size(); i++) {
-        //     Word n = v.get(i);
-        //     System.out.println(n);
-        // }
+        System.out.println("명품영어의 단어테스트를 시작합니다.");
+        System.out.println("-1을 입력하면 종료합니다.");
 
-        for (int i = 0; i < v.size(); i++) {
-            System.out.print("명품영어의 단어테스트를 시작합니다.");
-            System.out.print("-1을 입력하면 종료합니다.: ");
-            String input = sc.nextLine(); // 사용자 입력
-
+        while (true) {
             int randomindex = random.nextInt(v.size());
             Word word = v.get(randomindex);
 
             System.out.println("다음 영어단어의 뜻은?: " + word.getEnglish());
 
-            if(input.equals(word.getKorean())){
-                System.out.println("맞았습니다.");
-                break;
+            Vector<Integer> koreanIndex = new Vector<Integer>();
+            koreanIndex.add(randomindex);
+            for (int i = 0; i < 3; i++) {
+                int index;
+                do {
+                    index = random.nextInt(v.size());
+                } while (koreanIndex.indexOf(index) != -1);
+                koreanIndex.add(index);
             }
+            koreanIndex.sort(null);
+            System.out.print("(1)" + v.get(koreanIndex.get(0)).getKorean() + " ");
+            System.out.print("(2)" + v.get(koreanIndex.get(1)).getKorean() + " ");
+            System.out.print("(3)" + v.get(koreanIndex.get(2)).getKorean() + " ");
+            System.out.print("(4)" + v.get(koreanIndex.get(3)).getKorean() + " : ");
 
-            else if (input.equals("-1")) {
+            String input = sc.nextLine(); // 사용자 입력
+
+            if (input.equals("-1")) {
                 System.out.println("명품 영어를 종료합니다.");
                 break;
+            } else if (input.equals(Integer.toString(koreanIndex.indexOf(randomindex) + 1))) {
+                System.out.println("정답입니다.");
+            } else {
+                System.out.println("틀렸습니다. 정답은 " + (koreanIndex.indexOf(randomindex) + 1));
             }
         }
     }
