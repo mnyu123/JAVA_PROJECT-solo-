@@ -1,6 +1,5 @@
 package Exam11week;
 
-package Exam11week;
 
 // 2
 class ThreadB implements Runnable {
