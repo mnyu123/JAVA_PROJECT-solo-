@@ -153,25 +153,25 @@ public class FTP_Server {
 				 * 연결된 클라이언트 IP 주소 얻기
 				 */
 				InetSocketAddress isa = (InetSocketAddress) socket.getRemoteSocketAddress();
-				
-				System.out.println("[서버] : 연결 수락함 \"" + isa.getHostName()+"\"");
-				
+
+				System.out.println("[서버] : 연결 수락함 \"" + isa.getHostName() + "\"");
+
 				byte[] bytes = null;
-				String message = null; //메시지
+				String message = null; // 메시지
 				int Read_Byte_Count;
-				
-				while(true) {
+
+				while (true) {
 					/**
 					 * 데이터 보내기
 					 */
 					ops = socket.getOutputStream();
-					
+
 					/**
 					 * 데이터 받기
 					 */
 					is = socket.getInputStream();
-					
-					message = "\n안녕하세요 "+isa.getHostName()+"... 입력을 기다립니다... \n";
+
+					message = "\n안녕하세요 " + isa.getHostName() + "... 입력을 기다립니다... \n";
 					message += "====== < FTP 메뉴 > ======\n";
 					message += " 1. dir(File List),파일 목록 보기\n";
 					message += " 2. mkdir(Folder Create),폴더 생성하기\n";
@@ -181,27 +181,149 @@ public class FTP_Server {
 					message += " 6. quit(나가기)\n";
 					message += "=========================\n";
 					message += "번호를 하나 선택하세요: ";
-					
-					if(Message_Send(message, ops)) {
+
+					if (Message_Send(message, ops)) {
 						System.out.println("[서버] : 메뉴 데이터 보내기 성공");
 					}
-					
+
 					message = Message_Receive(is);
-					
-                    // pdf 24페이지부터 이어서 작성
-					if(message.equals("1")) {
-						message ="";
+
+					/*
+					 * 파일 목록 보는거
+					 */
+					if (message.equals("1")) {
+						message = "";
 						File[] fList = Ftp_Server_Folder.listFiles();
-						for(int i = 0; i<fList.length;i++) {
+						for (int i = 0; i < fList.length; i++) {
 							File file = fList[i];
+
+							/**
+							 * 파일 전송
+							 */
+							if (file.isFile()) {
+								message += file.toString() + "\n";
+							}
+
+							else {
+								// 레포트1
+								// message += fList.toString() + "\n";
+							}
+						}
+						if (message == "") {
+							message = "파일이 여기에 없습니다.\n";
+						}
+						if (Message_Send(message, ops)) {
+							System.out.println("[서버] : DIR 데이터 보내기 성공");
 						}
 					}
-						
+
+					/**
+					 * 폴더 만들기
+					 */
+					else if (message.equals("2")) {
+						if (Message_Send(message, ops)) {
+							System.out.println("[서버] : 폴더 이름 요청");
+
+							/**
+							 * 생성할 폴더 이름 받기
+							 */
+							message = Message_Receive((is));
+
+							System.out.println("[서버] : 생성할 폴더명 받기 성공, 폴더 명: " + message);
+							String Ftp_File_Name = FTP_Server_folder_name + "\\" + message;
+							File Ftp_Folder = new File(Ftp_File_Name);
+
+							/**
+							 * 폴더가 없다면
+							 */
+							if (!Ftp_Folder.exists()) {
+								Ftp_Folder.mkdirs(); // 새로 만듬
+								System.out.println("[서버] : 폴더 생성 성공");
+							} else {
+								System.out.println("[서버] : 폴더 생성 실패 , 이미 폴더가 있습니다.");
+							}
+						}
+					}
+
+					/**
+					 * 클라이언트 -> 서버(클라이언트에서 생성해준) 파일 받기
+					 */
+					else if (message.equals("3")) {
+						if (Message_Send(message, ops)) {
+							System.out.println("");
+						}
+
+						/**
+						 * 업로드 할 파일명 받기
+						 */
+						is = socket.getInputStream();
+						message = Message_Receive(is);
+
+						System.out.println("[서버] : 업로드할 파일명 받기 성공, 파일명: " + message);
+						Receive_File(is);
+					}
+
+					/**
+					 * 서버(보내줌) -> 클라이언트 에게
+					 */
+					else if (message.equals("4")) {
+						// 업로드 부분을 참조하여 작성
+						// 서버와 클라이언트의 업로드 <-> 다운로드 부분 반대로
+						// 레포트2
+					}
+
+					/**
+					 * 삭제
+					 */
+					else if (message.equals("5")) {
+						if (Message_Send(message, ops)) {
+							System.out.println("");
+						}
+
+						is = socket.getInputStream();
+						message = Message_Receive(is);
+
+						String Ftp_File_Name = FTP_Server_folder_name + "\\" + message;
+						File Ftp_File = new File(Ftp_File_Name);
+						if (Ftp_File.exists()) {
+							Ftp_File.delete();
+							System.out.println("[서버] : 삭제 성공 , 파일명 : " + message);
+						} else {
+							System.out.println("[서버] : 삭제 실패 , 파일명 : " + message);
+						}
+					}
+
+					/**
+					 * 나가기
+					 */
+					else if (message.equals("6")) {
+						bytes = message.getBytes("UTF-8");
+						ops.write(bytes);
+						ops.flush();
+						System.out.println("[서버] : 접속 종료 " + message);
+
+						break;
+					} else {
+						System.out.println(message);
+						break;
+					}
+
 				}
+				is.close();
+				ops.close();
+				socket.close();
 			}
 
-		} catch (Exception e) {
-			// TODO: handle exception
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		if (!serversocket.isClosed()) {
+			try {
+				socket.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }

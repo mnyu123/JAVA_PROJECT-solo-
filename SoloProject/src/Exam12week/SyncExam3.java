@@ -1,4 +1,4 @@
-package Exam12week;
+
 
 class Buffer {
 	private int contents;
