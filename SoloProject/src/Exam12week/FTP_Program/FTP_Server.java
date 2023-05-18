@@ -246,7 +246,7 @@ public class FTP_Server {
 					}
 
 					/**
-					 * 클라이언트 -> 서버(클라이언트에서 생성해준) 파일 받기
+					 * 서버의 입장 : 클라이언트가 보낸 test1.txt 파일을 "받았음"
 					 */
 					else if (message.equals("3")) {
 						if (Message_Send(message, ops)) {
