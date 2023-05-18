@@ -203,10 +203,12 @@ public class FTP_Server {
 							if (file.isFile()) {
 								message += file.toString() + "\n";
 							}
-
+							/**
+							 * 폴더 전송
+							 */
 							else {
 								// 레포트1
-								// message += fList.toString() + "\n";
+								
 							}
 						}
 						if (message == "") {
