@@ -1,7 +1,9 @@
 package FTP_Program;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,12 +11,18 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Scanner;
+
+import FTP_Program.FTP_Client;
 
 public class FTP_Server {
+
+	static Socket socket = null;
+
 	public static OutputStream ops;
 	public static InputStream is;
 
-	public static String FTP_Server_folder_name = "FTP_EXAM";
+	public static String FTP_Server_folder_name = "FTP_SERVER";
 
 	/**
 	 * 메시지 보내는 메소드
@@ -107,6 +115,76 @@ public class FTP_Server {
 		fos.close();
 		fos.flush();
 		System.out.println("[서버] : \"" + File_Name + "\" 파일 전송 완료");
+	}
+
+	private static void File_Send(File file) throws IOException {
+		DataOutputStream dos = new DataOutputStream(ops);
+		FileOutputStream fos = null;
+
+		OutputStream ops = socket.getOutputStream();
+		String message = file.toString();
+
+		if (Message_Send(message, ops)) {
+			System.out.println("");
+		}
+
+		String Ftp_File_Name = FTP_Server_folder_name + "\\" + message;
+		File Ftp_File = new File(Ftp_File_Name);
+
+		if (!Ftp_File.exists()) {
+			System.out.println("[클라이언트] : " + Ftp_File.toString() + " 파일이 존재하지 않습니다.");
+			return;
+		}
+
+		ops = socket.getOutputStream();
+
+		/**
+		 * 아웃풋 스트림을 이용해 데이터 단위로 보내는 스트림을 개통함.
+		 */
+
+		byte[] buffer = new byte[1024]; // 바이트 단위로 임시 저장하는 버퍼
+		int len; // 전송할 데이터의 길이를 측정하는 변수
+		int data = 0; // 전송횟수 , 용량을 측정하는 변수
+
+		/**
+		 * 파일 인풋 스트림 생성
+		 */
+		FileInputStream fis = new FileInputStream(Ftp_File);
+
+		/**
+		 * 파일 인풋 스트림을 통해 파일에서 입력받은 데이터를
+		 * 버퍼에 임시저장 하고 그 길이(len)를 측정
+		 * ->데이터의 양 측정
+		 */
+		while ((len = fis.read(buffer)) > 0) {
+			data++;
+		}
+
+		System.out.println("[서버] : 데이터 크기 = " + data);
+		fis.close();
+
+		/**
+		 * 파일 인풋 스트림이 만료되었으니 새롭게 개통
+		 */
+		fis = new FileInputStream(Ftp_File);
+		dos.writeInt(data);
+		dos.writeUTF(Ftp_File.getName());
+
+		/**
+		 * 데이터를 읽어올 횟수 만큼 파일인풋스트림 에서 파일의 내용을 읽어옴.
+		 */
+		for (len = 0; data > 0; data--) {
+			/*
+			 * 파일 인풋 스트림을 통해 파일에서 입력 받은 데이터를 버퍼에 임시저장하고 길이 측정
+			 */
+			len = fis.read(buffer);
+			/*
+			 * 서버에게 파일의 정보를(1KB)만큼 보내고 , 그 길이를 보냄.
+			 */
+			ops.write(buffer, 0, len);
+		}
+		ops.flush();
+		System.out.println("[서버] : \"" + Ftp_File.getName() + "\" 파일보내기 성공 ");
 	}
 
 	/**
@@ -208,7 +286,7 @@ public class FTP_Server {
 							 */
 							else {
 								// 레포트1
-								
+								message += FTP_Server_folder_name.toString() + "\n";
 							}
 						}
 						if (message == "") {
@@ -248,7 +326,7 @@ public class FTP_Server {
 					}
 
 					/**
-					 * 서버의 입장 : 클라이언트가 보낸 test1.txt 파일을 "받았음"
+					 * 서버에서는 다운로드
 					 */
 					else if (message.equals("3")) {
 						if (Message_Send(message, ops)) {
@@ -266,12 +344,29 @@ public class FTP_Server {
 					}
 
 					/**
-					 * 서버(보내줌) -> 클라이언트 에게
+					 * 서버에서는 업로드
 					 */
 					else if (message.equals("4")) {
 						// 업로드 부분을 참조하여 작성
 						// 서버와 클라이언트의 업로드 <-> 다운로드 부분 반대로
 						// 레포트2
+
+						if (Message_Send(message, ops)) {
+							System.out.println("==========다운로드 메뉴 정상입장==========");
+						}
+
+						/**
+						 * 다운로드 할 파일명 받기
+						 */
+						ops = socket.getOutputStream();
+						// message = File_Send(new File(message));
+
+						System.out.println("[서버] : 클라이언트 가 다운로드 할 파일 전송");
+						
+
+						System.out.println("[서버] : 클라이언트에게 다운로드 할 파일 전송됨.");
+
+						Thread.sleep(500);
 					}
 
 					/**

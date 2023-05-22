@@ -1,8 +1,10 @@
 package FTP_Program;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -129,6 +131,53 @@ public class FTP_Client {
         System.out.println("[클라이언트] : \"" + Ftp_File.getName() + "\" 파일보내기 성공 ");
     }
 
+    public static void Receive_File(InputStream is) throws IOException {
+		DataInputStream dis = new DataInputStream(is);
+		FileOutputStream fos = null;
+
+		/**
+		 * int형 데이터를 전송 받습니다.
+		 */
+		int data = dis.readInt();
+
+		/**
+		 * String형 데이터를 전송받아 File_Name(파일의 이름으로 쓰인다.)에 저장함.
+		 */
+		String File_Name = dis.readUTF();
+
+		String Ftp_File_Name = Ftp_Client_Folder_Name + "\\" + File_Name;
+		File Ftp_File = new File(Ftp_File_Name);
+
+		System.out.println("[서버] : 크기 받기 성공 , 파일 크기 : " + data);
+
+		if (Ftp_File.exists()) {
+			System.out.println("[서버] : 이미 \"" + Ftp_File.toString() + "\" 파일이 존재합니다.");
+			return;
+		}
+
+		/**
+		 * 생성한 파일을 클라이언트로 부터 전송받아 완성시키는 "파일 아웃풋 스트림"을 개통함
+		 */
+		fos = new FileOutputStream(Ftp_File);
+
+		/**
+		 * 바이트 단위로 '임시저장' 하는 버퍼를 생성함.
+		 */
+		byte[] buffer = new byte[1024];
+
+		/**
+		 * 전송받은 'data'의 횟수만큼 전송받아서 "파일 아웃풋 스트림"을 이용하여 '파일'을 완성시킨다.
+		 */
+		for (int len; data > 0; data--) {
+			len = is.read(buffer);
+			fos.write(buffer, 0, len);
+		}
+
+		fos.close();
+		fos.flush();
+		System.out.println("[서버] : \"" + File_Name + "\" 파일 전송 완료");
+	}
+
     public static void main(String[] args) {
         File Ftp_Client_Folder = new File(Ftp_Client_Folder_Name);
         if (!Ftp_Client_Folder.exists()) {
@@ -200,14 +249,14 @@ public class FTP_Client {
                 }
 
                 /**
-                 * 여기서 생성한게 서버로 감
+                 * 클라이언트에서는 업로드
                  */
                 else if (message.equals("3")) {
                     /*
                      * 쓰레기 데이터 비우기
                      */
                     Message_Receive(is);
-                    System.out.println("[클라이언트] : 업로드할 파일명을 입력 : ");
+                    System.out.print("[클라이언트] : 업로드할 파일명을 입력 : ");
                     scan = new Scanner(System.in);
 
                     /*
@@ -226,23 +275,32 @@ public class FTP_Client {
                         File_Send(new File(Str_Send_Files));
                     } else {
                         File_Send(new File(Str_Send_File_List[1]));
+                        // 레포트 4
                         System.out.println("[클라이언트] : 미구현 기능");
                     }
                     Thread.sleep(500);
                 }
 
                 /*
-                 * 서버(파일)->클라이언트 에게 다운로드
+                 * 클라이언트 에서는 다운로드
                  */
                 else if (message.equals("4")) {
                     // 서버의 업로드 부분을 참고하여 작성
                     // 서버와 클라이언트 반대
                     // 레포트3
-                    if(Message_Send(message, ops)){
-                        System.out.println("");
-                    }
+                    Message_Receive(is);
+                    System.out.print("[클라이언트] : 다운로드할 파일명을 입력: ");
+                    scan = new Scanner(System.in);
 
-                    
+                    /*
+                     * 다운로드할 파일들을 불러들일 String 변수 선언
+                     */
+                    String Str_Download_Files = scan.nextLine();
+
+                    System.out.println("[클라이언트] : 서버에게 이걸 다운하겠다 내용: "+Str_Download_Files);
+
+                    Thread.sleep(500);
+
                 }
 
                 /*
