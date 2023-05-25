@@ -299,6 +299,12 @@ public class FTP_Client {
 
                     System.out.println("[클라이언트] : 서버에게 이걸 다운하겠다 내용: "+Str_Download_Files);
 
+                    try {
+                        Receive_File(is);
+                    } catch (Exception e) {
+                        System.out.println("에러 3");
+                    }
+                    
                     Thread.sleep(500);
 
                 }

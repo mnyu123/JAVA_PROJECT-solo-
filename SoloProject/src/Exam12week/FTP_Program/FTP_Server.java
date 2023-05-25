@@ -362,8 +362,12 @@ public class FTP_Server {
 						// message = File_Send(new File(message));
 
 						System.out.println("[서버] : 클라이언트 가 다운로드 할 파일 전송");
-						
 
+						try {
+							File_Send(Ftp_Server_Folder);
+						} catch (Exception e) {
+							System.out.println("에러 2");
+						}
 						System.out.println("[서버] : 클라이언트에게 다운로드 할 파일 전송됨.");
 
 						Thread.sleep(500);
