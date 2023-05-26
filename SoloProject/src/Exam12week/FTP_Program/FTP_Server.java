@@ -13,14 +13,12 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
 
-import FTP_Program.FTP_Client;
-
 public class FTP_Server {
 
 	static Socket socket = null;
 
-	public static OutputStream ops;
-	public static InputStream is;
+	public static OutputStream ops = null;
+	public static InputStream is = null;
 
 	public static String FTP_Server_folder_name = "FTP_SERVER";
 
@@ -118,8 +116,6 @@ public class FTP_Server {
 	}
 
 	private static void File_Send(File file) throws IOException {
-		DataOutputStream dos = new DataOutputStream(ops);
-		FileOutputStream fos = null;
 
 		OutputStream ops = socket.getOutputStream();
 		String message = file.toString();
@@ -141,7 +137,7 @@ public class FTP_Server {
 		/**
 		 * 아웃풋 스트림을 이용해 데이터 단위로 보내는 스트림을 개통함.
 		 */
-
+		DataOutputStream dos = new DataOutputStream(ops);
 		byte[] buffer = new byte[1024]; // 바이트 단위로 임시 저장하는 버퍼
 		int len; // 전송할 데이터의 길이를 측정하는 변수
 		int data = 0; // 전송횟수 , 용량을 측정하는 변수
@@ -152,15 +148,12 @@ public class FTP_Server {
 		FileInputStream fis = new FileInputStream(Ftp_File);
 
 		/**
-		 * 파일 인풋 스트림을 통해 파일에서 입력받은 데이터를
-		 * 버퍼에 임시저장 하고 그 길이(len)를 측정
-		 * ->데이터의 양 측정
+		 * 파일 인풋 스트림을 통해 파일에서 입력받은 데이터를 버퍼에 임시저장 하고 그 길이(len)를 측정 ->데이터의 양 측정
 		 */
 		while ((len = fis.read(buffer)) > 0) {
 			data++;
 		}
 
-		System.out.println("[서버] : 데이터 크기 = " + data);
 		fis.close();
 
 		/**
@@ -198,7 +191,6 @@ public class FTP_Server {
 		/**
 		 * 서버 루트 폴더
 		 */
-		Socket socket = null;
 
 		File Ftp_Server_Folder = new File(FTP_Server_folder_name);
 		/**
@@ -347,9 +339,6 @@ public class FTP_Server {
 					 * 서버에서는 업로드
 					 */
 					else if (message.equals("4")) {
-						// 업로드 부분을 참조하여 작성
-						// 서버와 클라이언트의 업로드 <-> 다운로드 부분 반대로
-						// 레포트2
 
 						if (Message_Send(message, ops)) {
 							System.out.println("==========다운로드 메뉴 정상입장==========");
@@ -358,16 +347,17 @@ public class FTP_Server {
 						/**
 						 * 다운로드 할 파일명 받기
 						 */
-						ops = socket.getOutputStream();
+						is = socket.getInputStream();
+						message = Message_Receive(is);
+
 						// message = File_Send(new File(message));
 
 						System.out.println("[서버] : 클라이언트 가 다운로드 할 파일 전송");
 
-						try {
-							File_Send(Ftp_Server_Folder);
-						} catch (Exception e) {
-							System.out.println("에러 2");
-						}
+						String str_send_Files = message;
+
+						File_Send(new File(str_send_Files));
+
 						System.out.println("[서버] : 클라이언트에게 다운로드 할 파일 전송됨.");
 
 						Thread.sleep(500);
