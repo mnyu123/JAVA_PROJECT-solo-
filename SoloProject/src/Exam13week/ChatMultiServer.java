@@ -5,11 +5,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -40,7 +38,6 @@ public class ChatMultiServer {
 				executorService.submit(serverreceiver);
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -63,7 +60,6 @@ public class ChatMultiServer {
 				dis = new DataInputStream(socket.getInputStream());
 				dos = new DataOutputStream(socket.getOutputStream());
 			} catch (Exception e) {
-				// TODO: handle exception
 				e.printStackTrace();
 			}
 		}
@@ -73,12 +69,9 @@ public class ChatMultiServer {
 		 */
 		@Override
 		public void run() {
-			// TODO Auto-generated method stub
 			String name = "";
 			try {
 				System.out.println("[멀티서버] 서버의 소켓 : " + socket);
-				// name = dis.readUTF();
-				// System.out.println(name);
 
 				// 이름을 받아서 중복체크를 한후 결과를 응답으로 보냄
 				while ((name = dis.readUTF()) != null) {
@@ -95,17 +88,52 @@ public class ChatMultiServer {
 				// 클라이언트를 해쉬맵에 저장
 				ClientMap.put(name, dos);
 
+				All_Send_Message("[멀티서버] " + name + " 님이 입장하셨습니다.");
+
 				// 입력 스트림이 null이 아니면 반복
 				while (dis != null) {
 					String message;
 					message = dis.readUTF(); // 입력 스트림을 통해 읽어온 문자열을
 					// message에 할당
+					if (message.replaceAll(name + " >>> ", "").startsWith("@")) {
+						if (message.replaceAll(name + " >>> ", "").trim().equals("@list")) {
 
-					All_Send_Message(message);
+							String userList = Show_User_List(name);
+							if (All_Send_Message(userList)) {
+								// 수정: All_Send_Message가 true를 반환하면 응답
+								dos.writeUTF("[멀티서버] 유저 목록을 전송했습니다.");
+							} // 접속자 리스트 출력
+						} else if (message.replaceAll(name + " >>> ", "").trim().startsWith("@귓속말")) {
+							// 받아온 message를 " "공백 을 기준으로 3개를 분리
+							// 공백으로 split했을때 메시지에서 문제. 하지만 리미트를 정하면 해결
+							String[] messageTemp = message.replaceAll(name + " >>> ", "").trim().split(" ", 3);
+							if (messageTemp == null || messageTemp.length < 3) { // 리미트
+								dos.writeUTF("[멀티서버] 귓속말을 잘못 사용하셨습니다. \r\n 사용법 : @귓속말 [보낼사람] [메시지]");
+							} else {
+								String toName = messageTemp[1];
+								String toMessage = messageTemp[2];
+
+								if (ClientMap.containsKey(toName)) { // 유저 체크
+									Send_To_Meg(name, toName, toMessage);
+								} else {
+									dos.writeUTF("[멀티서버] 해당 사용자가 존재하지 않습니다.");
+								}
+							}
+						} else {
+							if (All_Send_Message(message, name)) {
+								// 수정: All_Send_Message가 true를 반환하면 응답
+								dos.writeUTF("[멀티서버] 메시지가 전송되었습니다.");
+							}
+						}
+					} else {
+						All_Send_Message(message, name);
+					}
 				}
 			} catch (Exception e) {
-				// TODO: handle exception
 				e.printStackTrace();
+			} finally {
+				ClientMap.remove(name);
+				All_Send_Message("[멀티서버] " + name + " 님이 퇴장하셨습니다.");
 			}
 		}
 
@@ -115,6 +143,23 @@ public class ChatMultiServer {
 		 * @param message 입력받은 메시지
 		 * @return 지금까지의 모든 메시지
 		 */
+		public boolean All_Send_Message(String message, String name) {
+			Iterator it = ClientMap.keySet().iterator();
+
+			while (it.hasNext()) {
+				try {
+					Object obj = it.next();
+					DataOutputStream it_out = (DataOutputStream) ClientMap.get(obj);
+					if (!obj.toString().equals(name)) {
+						it_out.writeUTF(message);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			return true;
+		}
+
 		public boolean All_Send_Message(String message) {
 			Iterator it = ClientMap.keySet().iterator();
 
@@ -123,11 +168,39 @@ public class ChatMultiServer {
 					DataOutputStream it_dos = (DataOutputStream) ClientMap.get(it.next());
 					it_dos.writeUTF(message);
 				} catch (Exception e) {
-					// TODO: handle exception
 					e.printStackTrace();
 				}
 			}
 			return true;
+		}
+
+		public String Show_User_List(String name) {
+			StringBuilder strbuild = new StringBuilder("[멀티서버] 접속자 목록 \r\n");
+			// hashmap에 있는 사용자 이름을 가져온다.
+			Iterator it = ClientMap.keySet().iterator();
+
+			while (it.hasNext()) {
+				try {
+					String key = (String) it.next();
+					if (key.equals(name)) {
+						key += "(*)";
+					}
+					strbuild.append(key + "\r\n");
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			strbuild.append("[멀티서버] " + ClientMap.size() + "명 접속중 \r\n");
+			return strbuild.toString();
+		}
+
+		public void Send_To_Meg(String FromName, String toName, String message) {
+			try {
+				ClientMap.get(toName).writeUTF("[멀티서버] 귓속말: from[" + FromName + "] >>> " + message);
+				ClientMap.get(FromName).writeUTF("[멀티서버] 귓속말: to[" + toName + "] >>> " + message);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }

@@ -10,21 +10,18 @@ public class Receiver extends Thread {
 		try {
 			dis = new DataInputStream(socket.getInputStream());
 		} catch (Exception e) {
-			// TODO: handle exception
 			e.printStackTrace();
 		}
 	}
 
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
 		while (dis != null) {
 			try {
 				System.out.println(dis.readUTF());
 			} catch (Exception e) {
-				// TODO: handle exception
 				e.printStackTrace();
-				interrupt();
+				break;
 			}
 		}
 	}

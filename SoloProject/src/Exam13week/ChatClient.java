@@ -10,12 +10,11 @@ import java.util.Scanner;
 public class ChatClient {
 
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		String name = "";
 		try {
 			Socket socket = new Socket("localhost", 7777);
 			System.out.println("[클라이언트] 서버에 연결 되었습니다.");
 			System.out.println("[클라이언트] 클라이언트의 소켓 : " + socket);
+			String name = "";
 
 			while (true) {
 				System.out.print("[클라이언트] 사용할 ID를 입력해 주세요: >>> ");
@@ -46,12 +45,9 @@ public class ChatClient {
 			sender.start();
 			receiver.start();
 
-			// scan.close();
 		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
