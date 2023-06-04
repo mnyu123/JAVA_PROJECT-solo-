@@ -2,7 +2,10 @@ package Exam13week;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Collections;
@@ -119,7 +122,15 @@ public class ChatMultiServer {
 									dos.writeUTF("[멀티서버] 해당 사용자가 존재하지 않습니다.");
 								}
 							}
-						} else {
+							// 파일 전송에 관한 내용,클라이언트가 @file이라고 요청한다
+						} else if(message.replaceAll(name + " >>> ", "").trim().startsWith("@file")){
+							String[] messageTemp = message.replaceAll(name + " >>> ", "").trim().split(" ", 2);
+            					if (messageTemp.length == 2) {
+                					String filePath = messageTemp[1];
+                					sendFile(filePath, name);
+								}
+						
+						else {
 							if (All_Send_Message(message, name)) {
 								// 수정: All_Send_Message가 true를 반환하면 응답
 								dos.writeUTF("[멀티서버] 메시지가 전송되었습니다.");
@@ -202,5 +213,38 @@ public class ChatMultiServer {
 				e.printStackTrace();
 			}
 		}
+
 	}
+
+	public void sendFile(String filePath, String name) {
+		
+
+		File file = new File(filePath);
+
+		if (!file.exists()) {
+			System.out.println("[멀티서버] : " + file.toString() + " 파일이 존재하지 않습니다.");
+			return;
+		}
+
+		if (file.isFile()) {
+			dos.writeUTF("[멀티서버] 파일 전송을 시작합니다.");
+			dos.writeUTF(file.getName());
+			dos.writeLong(file.length());
+
+			FileInputStream fis = new FileInputStream(file);
+			byte[] buffer = new byte[1024];
+			int bytesRead;
+			while ((bytesRead = fis.read(buffer)) != -1) {
+				dos.write(buffer, 0, bytesRead);
+			}
+			fis.close();
+
+			dos.writeUTF("[멀티서버] 파일 전송이 완료되었습니다.");
+		} else {
+			dos.writeUTF("[멀티서버] 파일 전송 실패: 해당 경로에 파일이 존재하지 않습니다.");
+		}
+
+		System.out.println("[멀티서버] : 파일 전송이 완료되었습니다.");
+	}
+
 }

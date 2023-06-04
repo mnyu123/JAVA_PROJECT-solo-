@@ -1,3 +1,4 @@
+package Exam3week;
 import java.util.Random;
 import java.util.Scanner;
 
