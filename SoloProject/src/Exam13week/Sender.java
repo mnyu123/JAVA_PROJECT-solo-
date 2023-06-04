@@ -36,7 +36,7 @@ public class Sender extends Thread {
 				e.printStackTrace();
 				break; // 스레드 종료
 			}
-			
+
 		}
 		scan.close();
 	}
