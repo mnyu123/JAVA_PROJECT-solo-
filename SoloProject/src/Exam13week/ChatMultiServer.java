@@ -237,8 +237,9 @@ public class ChatMultiServer {
 				 
 				if (Chat_File.isFile()) {
 					dos.writeUTF("[멀티서버] 파일 전송을 시작합니다.");
-					dos.writeUTF(file.getName());
-					dos.writeLong(file.length());
+					dos.writeUTF(Chat_File.getName()); // 이름은 가져오는데
+					
+					dos.writeLong(Chat_File.length()); // 파일 크기는 못가져와
 		
 					FileInputStream fis = new FileInputStream(Chat_File);
 					byte[] buffer = new byte[1024];
@@ -246,11 +247,10 @@ public class ChatMultiServer {
 					while ((bytesRead = fis.read(buffer)) != -1) {
 						dos.write(buffer, 0, bytesRead);
 					}
-					fis.close();
-					
 					ops = socket.getOutputStream();
 					ops.flush();
-		
+					fis.close();
+
 					dos.writeUTF("[멀티서버] 파일 전송이 완료되었습니다.");
 					
 				} else {
