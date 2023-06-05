@@ -29,8 +29,9 @@ public class Sender extends Thread {
 					System.out.println("[멀티서버] 서버와의 연결이 종료되었습니다.");
 					System.out.println("[멀티서버] 프로그램을 종료합니다.");
 					System.exit(0);
-				} else {
-					dos.writeUTF(name + ">>>" + msg);
+				} 
+				else {
+					dos.writeUTF(name + " >>> "+msg);
 				}
 			} catch (Exception e) {
 				e.printStackTrace();

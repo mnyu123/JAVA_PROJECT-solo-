@@ -5,12 +5,14 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,8 +22,13 @@ import java.util.concurrent.Executors;
  * @author WKU
  *
  */
+
+
 public class ChatMultiServer {
 	static HashMap<String, DataOutputStream> ClientMap; // 이름,ID값 받기 위해 해쉬맵 사용
+	
+	public static InputStream is = null; //파일 전송을 위해 추가
+	static final String Chat_Server_Folder = "Chat_Server_Folder";
 
 	public static void main(String[] args) {
 		// 스레드 생성 7개로 제한
@@ -99,47 +106,44 @@ public class ChatMultiServer {
 					message = dis.readUTF(); // 입력 스트림을 통해 읽어온 문자열을
 					// message에 할당
 					if (message.replaceAll(name + " >>> ", "").startsWith("@")) {
-						if (message.replaceAll(name + " >>> ", "").trim().equals("@list")) {
-
-							String userList = Show_User_List(name);
-							if (All_Send_Message(userList)) {
-								// 수정: All_Send_Message가 true를 반환하면 응답
-								dos.writeUTF(Show_User_List(name));
-								dos.writeUTF("[멀티서버] 유저 목록을 전송했습니다.");
-							} // 접속자 리스트 출력
+						
+						if (message.replaceAll(name + " >>> ", "").trim().equals("@접속자")) {
+							dos.writeUTF(Show_User_List(name)); // 접속자 리스트 출력
+							
 						} else if (message.replaceAll(name + " >>> ", "").trim().startsWith("@귓속말")) {
 							// 받아온 message를 " "공백 을 기준으로 3개를 분리
 							// 공백으로 split했을때 메시지에서 문제. 하지만 리미트를 정하면 해결
+							
 							String[] messageTemp = message.replaceAll(name + " >>> ", "").trim().split(" ", 3);
+							
 							if (messageTemp == null || messageTemp.length < 3) { // 리미트
 								dos.writeUTF("[멀티서버] 귓속말을 잘못 사용하셨습니다. \r\n 사용법 : @귓속말 [보낼사람] [메시지]");
+								
 							} else {
 								String toName = messageTemp[1];
 								String toMessage = messageTemp[2];
 
 								if (ClientMap.containsKey(toName)) { // 유저 체크
 									Send_To_Meg(name, toName, toMessage);
+									
 								} else {
 									dos.writeUTF("[멀티서버] 해당 사용자가 존재하지 않습니다.");
+									
 								}
 							}
-							// 파일 전송에 관한 내용,클라이언트가 @file이라고 요청한다
-						} else if (message.replaceAll(name + " >>> ", "").trim().startsWith("@file")) {
-							String[] messageTemp = message.replaceAll(name + " >>> ", "").trim().split(" ", 2);
-							if (messageTemp.length == 2) {
-								String filePath = messageTemp[1];
-//								sendFile(filePath, name);
-							}
-
-							else {
-								if (All_Send_Message(message, name)) {
-									// 수정: All_Send_Message가 true를 반환하면 응답
-									dos.writeUTF("[멀티서버] 메시지가 전송되었습니다.");
-								}
-							}
-						} else {
-							All_Send_Message(message, name);
+						} 
+						else if (message.replaceAll(name + " >>> ", "").trim().equals("@파일")) {
+							Scanner scan = new Scanner(System.in);
+							dos.writeUTF("[멀티서버] 전송할 파일의 이름을 입력하세요: ");
+//								String filePath = scan.nextLine();
+								String filePath = "C:\\Users\\WKU\\eclipse-workspace\\ChatChat\\text.txt";
+								sendFile(filePath, name);
 						}
+						else {
+								dos.writeUTF("[멀티서버] 메시지가 전송되었습니다.");
+						}
+					} else {
+						All_Send_Message(message, name);
 					}
 				}
 			} catch (Exception e) {
@@ -215,37 +219,46 @@ public class ChatMultiServer {
 				e.printStackTrace();
 			}
 		}
-
+		
+		public void sendFile(String filePath, String name) throws IOException {
+		
+				OutputStream ops = socket.getOutputStream();
+				
+				
+				File file = new File(Chat_Server_Folder);
+				
+				File Chat_File = new File(filePath);
+		
+				if (!file.exists()) {
+					System.out.println("[멀티서버] : " + file.toString() + " 파일/폴더가 존재하지 않습니다.");
+					file.mkdir();
+				}
+		
+				 
+				if (Chat_File.isFile()) {
+					dos.writeUTF("[멀티서버] 파일 전송을 시작합니다.");
+					dos.writeUTF(file.getName());
+					dos.writeLong(file.length());
+		
+					FileInputStream fis = new FileInputStream(Chat_File);
+					byte[] buffer = new byte[1024];
+					int bytesRead;
+					while ((bytesRead = fis.read(buffer)) != -1) {
+						dos.write(buffer, 0, bytesRead);
+					}
+					fis.close();
+					
+					ops = socket.getOutputStream();
+					ops.flush();
+		
+					dos.writeUTF("[멀티서버] 파일 전송이 완료되었습니다.");
+					
+				} else {
+					
+					dos.writeUTF("[멀티서버] 파일 전송 실패: 해당 경로에 파일이 존재하지 않습니다.");
+				}
+		
+				
+			}
 	}
-
-//	public void sendFile(String filePath, String name) {
-//
-//		File file = new File(filePath);
-//
-//		if (!file.exists()) {
-//			System.out.println("[멀티서버] : " + file.toString() + " 파일이 존재하지 않습니다.");
-//			return;
-//		}
-//
-//		if (file.isFile()) {
-//			dos.writeUTF("[멀티서버] 파일 전송을 시작합니다.");
-//			dos.writeUTF(file.getName());
-//			dos.writeLong(file.length());
-//
-//			FileInputStream fis = new FileInputStream(file);
-//			byte[] buffer = new byte[1024];
-//			int bytesRead;
-//			while ((bytesRead = fis.read(buffer)) != -1) {
-//				dos.write(buffer, 0, bytesRead);
-//			}
-//			fis.close();
-//
-//			dos.writeUTF("[멀티서버] 파일 전송이 완료되었습니다.");
-//		} else {
-//			dos.writeUTF("[멀티서버] 파일 전송 실패: 해당 경로에 파일이 존재하지 않습니다.");
-//		}
-//
-//		System.out.println("[멀티서버] : 파일 전송이 완료되었습니다.");
-//	}
-
 }
