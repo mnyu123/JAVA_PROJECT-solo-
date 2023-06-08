@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,12 +26,13 @@ import java.util.concurrent.Executors;
  */
 
 public class ChatMultiServer {
-	static String inFilePath = "C:\\Users\\WKU\\Documents\\mnyu\\yes.txt";
-	static String OutFilePath = "C:\\Users\\WKU\\Documents\\mnyu\\Chat_Server_Folder\\yes.txt";
+	static String inFilePath = "C:\\Users\\WKU\\Documents\\mnyu\\new.txt";
+	static String OutFilePath = "C:\\Users\\WKU\\Documents\\mnyu\\Chat_Server_Folder\\new.txt";
 	static HashMap<String, DataOutputStream> ClientMap; // 이름,ID값 받기 위해 해쉬맵 사용
 
 	public static InputStream is = null; // 파일 전송을 위해 추가
 	static final String Chat_Server_Folder = "Chat_Server_Folder";
+	static final String Chat_User_Folder = "Chat_User_Folder";
 
 	public static void main(String[] args) {
 		// 스레드 생성 7개로 제한
@@ -135,10 +137,12 @@ public class ChatMultiServer {
 							}
 						} else if (message.replaceAll(name + " >>> ", "").trim().equals("@파일")) {
 							Scanner scan = new Scanner(System.in);
-							dos.writeUTF("[멀티서버] 전송할 파일의 이름을 입력하세요: ");
+							dos.writeUTF("[멀티서버] 파일 전송 시작");
 							// String filePath = scan.nextLine();
 							// String filePath = "C:\\Users\\WKU\\Documents\\mnyu\\yes.txt";
-							sendFile(inFilePath, OutFilePath);
+							String filePath = inFilePath;
+							sendFile(filePath, OutFilePath);
+							receiveFile(filePath, OutFilePath, 0);
 						} else {
 							dos.writeUTF("[멀티서버] 메시지가 전송되었습니다.");
 						}
@@ -222,9 +226,36 @@ public class ChatMultiServer {
 
 		public void sendFile(String filePath, String name) throws IOException {
 
-			String str = "";
+			
 			OutputStream ops = socket.getOutputStream();
+			FileInputStream fis;
 
+			DataOutputStream dos = new DataOutputStream(ops);
+
+			fis = new FileInputStream(new File(filePath));
+
+			byte[] buffer = new byte[1024]; // 바이트단위로 임시저장하는 버퍼를 생성합니다.
+			int len; // 전송할 데이터의 길이를 측정하는 변수입니다.
+			int data = 0;
+
+			while ((len = fis.read(buffer)) > 0) { // FileInputStream을 통해 파일에서 입력받은 데이터를 버퍼에 임시저장하고 그 길이를 측정합니다.
+				data++; // 데이터의 양을 측정합니다.
+			}
+
+			int datas = data; // 아래 for문을 통해 data가 0이되기때문에 임시저장한다.
+
+			fis.close();
+			fis = new FileInputStream(filePath); // FileInputStream이 만료되었으니 새롭게 개통합니다.
+			dos.writeInt(data); // 데이터 전송횟수를 서버에 전송하고,
+			dos.writeUTF(filePath); // 파일의 이름을 서버에 전송합니다.
+
+			for (len = 0; data > 0; data--) { // 데이터를 읽어올 횟수만큼 FileInputStream에서 파일의 내용을 읽어옵니다.
+				len = fis.read(buffer); // FileInputStream을 통해 파일에서 입력받은 데이터를 버퍼에 임시저장하고 그 길이를 측정합니다.
+				ops.write(buffer, 0, len); // 서버에게 파일의 정보(1kbyte만큼보내고, 그 길이를 보냅니다.
+			}
+
+			System.out.println("약 " + datas + " kbyte");
+			dos.writeUTF("[멀티서버] 파일 전송 중간체크");
 			// String inFilePath = "C:\\Users\\WKU\\Documents\\mnyu\\yes.txt";
 			// String OutFilePath =
 			// "C:\\Users\\WKU\\Documents\\mnyu\\Chat_Server_Folder\\yes.txt";
@@ -233,70 +264,122 @@ public class ChatMultiServer {
 
 			// File Chat_File = new File(filePath);
 
-			try {
-				File f = new File(inFilePath);
-
-				if (!f.exists()) {
-					f.createNewFile();
-				}
-
-				FileInputStream fis = new FileInputStream(f);
-
-				int i = 0;
-
-				while ((i = fis.read()) != -1) {
-					System.out.println((char) i);
-				}
-				fis.close();
-				dos.writeUTF("[멀티서버] 파일 작성 완료");
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			try {
-				File f = new File(OutFilePath);
-
-				if (!f.exists()) {
-					f.createNewFile();
-				}
-				FileOutputStream fos = new FileOutputStream(f);
-
-				byte[] bytes = str.getBytes();
-
-				fos.write(bytes);
-				fos.close();
-				dos.writeUTF("[멀티서버] 파일 복사 완료");
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
 			if (!file.exists()) {
 				System.out.println("[멀티서버] : " + file.toString() + " 파일/폴더가 존재하지 않습니다.");
 				file.mkdir();
 			}
 
 			// if (Chat_File.isFile()) {
-			// 	dos.writeUTF("[멀티서버] 파일 전송을 시작합니다.");
-			// 	dos.writeUTF(Chat_File.getName()); // 이름은 가져오는데
+			// dos.writeUTF("[멀티서버] 파일 전송을 시작합니다.");
+			// dos.writeUTF(Chat_File.getName()); // 이름은 가져오는데
 
-			// 	dos.writeLong(Chat_File.length()); // 파일 크기는 못가져와
+			// dos.writeLong(Chat_File.length()); // 파일 크기는 못가져와
 
-			// 	FileInputStream fis = new FileInputStream(Chat_File);
-			// 	byte[] buffer = new byte[1024];
-			// 	int bytesRead;
-			// 	while ((bytesRead = fis.read(buffer)) != -1) {
-			// 		dos.write(buffer, 0, bytesRead);
-			// 	}
-			// 	ops = socket.getOutputStream();
-			// 	ops.flush();
-			// 	fis.close();
+			// FileInputStream fis = new FileInputStream(Chat_File);
+			// byte[] buffer = new byte[1024];
+			// int bytesRead;
+			// while ((bytesRead = fis.read(buffer)) != -1) {
+			// dos.write(buffer, 0, bytesRead);
+			// }
+			// ops = socket.getOutputStream();
+			// ops.flush();
+			// fis.close();
 
-			// 	dos.writeUTF("[멀티서버] 파일 전송이 완료되었습니다.");
+			// dos.writeUTF("[멀티서버] 파일 전송이 완료되었습니다.");
 
 			// } else {
 
-			// 	dos.writeUTF("[멀티서버] 파일 전송 실패: 해당 경로에 파일이 존재하지 않습니다.");
+			// dos.writeUTF("[멀티서버] 파일 전송 실패: 해당 경로에 파일이 존재하지 않습니다.");
 			// }
 
+		}
+
+		// private void receiveFile(String filePath, String outFilePath) throws
+		// IOException {
+
+		// FileOutputStream fos = null;
+
+		// File User_file = new File(Chat_User_Folder);
+
+		// String Chat_File_Name = Chat_Server_Folder + "\\";
+		// File Chat_File = new File(Chat_File_Name);
+
+		// if (!User_file.exists()) {
+		// System.out.println("[멀티서버] : " + User_file.toString() + " 파일/폴더가 존재하지
+		// 않습니다.");
+		// User_file.mkdir();
+		// return;
+		// }
+		// int data = dis.readInt();
+		// try {
+		// fos = new FileOutputStream(User_file);
+		// byte[] buffer = new byte[1024];
+
+		// for (int i; data > 0; data--) {
+		// i = is.read(buffer);
+		// fos.write(buffer, 0, i);
+		// }
+		// fos.close();
+		// fos.flush();
+		// dos.writeUTF("[멀티서버] 유저에게 파일 전송함");
+		// } catch (FileNotFoundException e) {
+		// e.printStackTrace();
+		// }
+
+		// }
+
+		private void receiveFile(String filePath, String name, long fileSize) throws IOException {
+			try {
+				String str = "";
+				File file = new File(Chat_User_Folder);
+				File User_File = new File(filePath);
+				if (!file.exists()) {
+					System.out.println("[멀티서버] : " + file.toString() + " 파일/폴더가 존재하지 않습니다.");
+					file.mkdir();
+					return;
+				}
+
+				if (!User_File.exists()) {
+					User_File.createNewFile();
+				}
+
+				try {
+					File f = new File(OutFilePath);
+
+					if (!f.exists()) {
+						f.createNewFile();
+					} else {
+						dos.writeUTF("[멀티서버] 이미 해당 파일이 있습니다.");
+						return;
+					}
+					FileOutputStream fos = new FileOutputStream(f);
+
+					byte[] bytes = str.getBytes();
+
+					fos.write(bytes);
+					fos.close();
+					dos.writeUTF("[멀티서버] 파일 전 송 완료");
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+
+				FileOutputStream fos = new FileOutputStream(User_File);
+
+				byte[] buffer = new byte[4096];
+				int bytesRead;
+				long totalBytesRead = 0;
+
+				while (totalBytesRead < fileSize && (bytesRead = dis.read(buffer, 0,
+						(int) Math.min(buffer.length, fileSize - totalBytesRead))) != -1) {
+					fos.write(buffer, 0, bytesRead);
+					totalBytesRead += bytesRead;
+				}
+
+				fos.close();
+				System.out.println("[멀티서버] 파일 수신 완료: " + file);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }

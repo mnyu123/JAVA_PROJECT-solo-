@@ -43,6 +43,7 @@ public class Receiver extends Thread {
 
 	private void receiveFile(String fileName, long fileSize) {
 		try {
+			
 			File file = new File(fileName);
 			FileOutputStream fos = new FileOutputStream(file);
 
